@@ -1,0 +1,130 @@
+const sql = require('mssql/msnodesqlv8');
+const prompt = require('prompt');
+
+
+var config = {
+    server: 'SHARK',
+    driver: 'msnodesqlv8',
+    database: 'CEGO_Databse',
+    options : {
+        trustedConnection : true
+    }
+  };
+
+const properties = [
+    {
+        name: 'id'
+    },
+    {
+        name: 'firstName',
+    },
+    {
+        name: 'lastName',
+    },
+    {
+        name: 'email',
+        //Regex email validator        
+        validator: /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/,
+        warning: 'Invalid email adress'
+    }
+];
+
+prompt.start();
+
+prompt.get(properties, function (err, result) {
+    if (err) {return onErr(err);}
+    else { return onSearch(result) }
+});
+
+function onErr(err) {
+    console.log(err);
+    return 1;
+}
+
+function onSearch(result) {
+
+    const pool = new sql.ConnectionPool(config);
+    pool.connect().then(() => {
+        //simple query
+        pool.request().query('SELECT * FROM users WHERE ' + buildConditions(result), (err, result) => {
+              if(err) res.send(err)
+              else{
+                  return res.json({
+                      data : result.recordset
+                  })
+              }
+          })
+          sql.close();
+    })   
+
+    
+
+    //if(saveLocally(queryResult)){
+    //    verifyLocalStorage(queryResult);
+    //}
+    return "User successfully saved to local file";
+}
+
+
+
+function buildConditions(params) {
+    var conditions = [];
+    var values = [];
+  
+    if (typeof params.id !== 'undefined') {
+        conditions.push("id = ?");
+        values.push(parseInt(params.id));
+      }
+    if (typeof params.firstName !== 'undefined') {
+      conditions.push("firstName = ?");
+      values.push(parseInt(params.firstName));
+    }
+
+    if (typeof params.lastName !== 'undefined') {
+        conditions.push("lastName = ?");
+        values.push(parseInt(params.lastName));
+    }
+
+    if (typeof params.email !== 'undefined') {
+        conditions.push("email = ?");
+        values.push(parseInt(params.email));
+    }
+  
+    return {
+      where: conditions.length ?
+               conditions.join(' AND ') : '1',
+      values: values
+    };
+}
+
+function saveLocally(UserData){
+    var fs = require("fs");
+
+    var tempString = ''
+
+    for (var i in UserData){
+        tempString += UserData[i] + '\n';
+    }
+
+    fs.writeFile("users.txt", tempString, (err) => {
+        if (err) {
+            console.log(err);
+            return false;
+            }    
+        console.log("Successfully Written to File.");
+        return true;
+    });
+}
+
+function verifyLocalStorage(UserData){
+    var fs = require("fs");
+
+    fs.readFile("users.txt", "utf-8", (err, data) => {
+        if (err) { console.log(err) }
+        
+        for (var i in UserData){
+            if(data.includes(UserData[i]));
+        }
+    });
+}
+  
